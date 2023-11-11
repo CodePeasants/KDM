@@ -1,0 +1,119 @@
+{
+    "name": "Aubergine",
+    "gender": "M",
+    "departing": false,
+    "returning": true,
+    "attributes": {
+        "MOV": 5,
+        "STR": 0,
+        "EVA": 0,
+        "ACC": 0,
+        "LCK": 0,
+        "SPD": 0
+    },
+    "tempAttributes": {
+        "MOV": 0,
+        "STR": 0,
+        "EVA": 0,
+        "ACC": 0,
+        "LCK": 0,
+        "SPD": 0
+    },
+    "survival": 1,
+    "insanity": {
+        "value": 0,
+        "light": false
+    },
+    "reroll": true,
+    "hasReroll": false,
+    "xp": 0,
+    "courage": 0,
+    "understanding": 0,
+    "weaponProficiency": {
+        "weapon": "",
+        "rank": 0,
+        "earned": false
+    },
+    "armor": {
+        "head": {
+            "value": 0,
+            "heavy": false
+        },
+        "arms": {
+            "value": 0,
+            "light": false,
+            "heavy": false
+        },
+        "body": {
+            "value": 0,
+            "light": false,
+            "heavy": false
+        },
+        "waist": {
+            "value": 0,
+            "light": false,
+            "heavy": false
+        },
+        "legs": {
+            "value": 0,
+            "light": false,
+            "heavy": false
+        }
+    },
+    "survivalActions": {
+        "dodge": true,
+        "encourage": true,
+        "surge": true,
+        "dash": true,
+        "endure": false
+    },
+    "canSpendSurvival": true,
+    "canGainSurvival": true,
+    "savior": false,
+    "canUseFightingArts": true,
+    "fightingArts": [],
+    "disorders": [],
+    "abilities": [],
+    "severeInjuries": [],
+    "skipNextHunt": false,
+    "dead": false,
+    "causeOfDeath": "",
+    "timeOfDeath": 0,
+    "cursedItems": [],
+    "affinities": {
+        "red": 0,
+        "blue": 0,
+        "green": 0
+    },
+    "notes": "",
+    "retired": false,
+    "parents": {
+        "father": null,
+        "mother": null
+    },
+    "log": [],
+    "loadout": {
+        "gear": [
+            [
+                null,
+                null,
+                null
+            ],
+            [
+                null,
+                null,
+                null
+            ],
+            [
+                null,
+                null,
+                null
+            ]
+        ],
+        "armorSet": ""
+    },
+    "settlement": "405a4237-799a-44ce-8cd9-0e2749f49511",
+    "id": "e5865853-d75f-4bea-8ed2-e79b506391fb",
+    "key": "e5865853-d75f-4bea-8ed2-e79b506391fb",
+    "bleeding": 0
+}
