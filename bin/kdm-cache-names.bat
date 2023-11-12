@@ -8,4 +8,4 @@ set "module_name=!module_name:.bat=.py!"
 
 set cmd_path=%root_path%..\kdm\cli\%module_name%
 
-%root_path%..\venv\Scripts\python %cmd_path%
+%root_path%..\venv\Scripts\python %cmd_path% %*

@@ -266,8 +266,6 @@ class Settlement(DictWrapper):
                 print(f"Dragon Inheritance - Disorders: {unique_disorders}")
             elif inheritance == DragonInheritance.SURNAME:
                 print(f"MANUAL: Dragon Inheritance - Surname: {new_survivor['name']} should inherit the surname of a parent ({father['name']}, {mother['name']})")
-        # new_survivor["abilities"] = [{"id": "prepared"}, ...]
-        # Dragon traits / constellations?
 
         self.parent["survivors"][self.id][new_survivor["id"]] = new_survivor
         self.data["population"] += 1

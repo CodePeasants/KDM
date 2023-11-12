@@ -59,7 +59,7 @@ class Graves(Principle):
             gain = 2
         else:
             gain = 1
-        settlement["endeavor"] += gain
+        settlement["endeavors"] += gain
         print(f"Principle Graves - gained {gain} endeavor.")
 
 

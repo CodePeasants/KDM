@@ -424,7 +424,7 @@ class Intimacy:
                     father=self.father,
                     mother=self.mother, 
                     gender=gender,
-                    dragon_inheritance=self.select_dragon_inheritance(self.father, self.mother),
+                    dragon_inheritance=self.select_dragon_inheritance(),
                     abilities=abilities
                 )
             )

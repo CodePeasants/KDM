@@ -11,7 +11,7 @@ Options:
     --male-chance=MC, -c=MC         Chance that new babies will be male (number from 0-1 ) [default: 0.1]
     --augury-bonus=AB, -a=AB        Bonus to augury rolls. [default: 0]
     --intimacy-bonus=IB, -i=IB      Bonus to intimacy rolls. [default: 0]
-    --risky-rerolls, -r             Use once in a lifetime re-roll on 2 or 3 for intamcy as well. [default: False]
+    --risky-rerolls, -r             Use once in a lifetime re-roll on 2 or 3 for intamcy as well.
 """
 from docopt import docopt
 import os
@@ -37,7 +37,6 @@ def main(**kwargs):
         intimacy_bonus=int(kwargs["--intimacy-bonus"]),
         risky_rerolls=kwargs["--risky-rerolls"]
     )
-
     maker.save(kwargs["--output-path"])
 
 

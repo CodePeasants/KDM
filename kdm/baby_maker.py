@@ -54,8 +54,9 @@ class BabyMaker:
                 augury = Augury.select_augurer(self.settlement, father, mother, augury_bonus)
                 if augury.augury():
                     intimacy = Intimacy.select_mates(self.settlement, initiator=augury.survivor, father=father, mother=mother, bonus=intimacy_bonus)
-                    new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
-                    result.extend(new_survivors)
+                    if intimacy is not None:
+                        new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
+                        result.extend(new_survivors)
             else:
                 candidate_id = list(self.settlement.temp_endeavor.keys())[0]
                 candidate = self.settlement.survivors[candidate_id]
@@ -65,8 +66,9 @@ class BabyMaker:
                         self.settlement.temp_endeavor.pop(candidate_id)
                     if Augury(self.settlement, candidate, augury_bonus).augury():
                         intimacy = Intimacy.select_mates(self.settlement, initiator=candidate, father=father, mother=mother, bonus=intimacy_bonus)
-                        new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
-                        result.extend(new_survivors)
+                        if intimacy is not None:
+                            new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
+                            result.extend(new_survivors)
                 else:
                     if self.settlement.temp_endeavor[candidate_id] > 0:
                         print(
