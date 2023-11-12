@@ -1,0 +1,48 @@
+{
+    "fighting_arts": {
+        "core": [
+            "ambidextrous",
+            "berserker",
+            "clutchFighter",
+            "comboMaster",
+            "crazed",
+            "crossarmBlock",
+            "doubleDash",
+            "extraSense",
+            "lastManStanding",
+            "leader",
+            "mightyStrike",
+            "monsterClawStyle",
+            "oratorOfDeath",
+            "rhythmChaser",
+            "strategist",
+            "thrillSeeker",
+            "timelessEye",
+            "tough",
+            "tumble",
+            "unconsciousFighter"
+        ],
+        "dragon-king": [
+            "acrobatics",
+            "championsRite",
+            "fatedBlow",
+            "unbreakable"
+        ]
+    },
+    "secret_fighting_arts": {
+        "core": [
+            "beastOfCaratosis",
+            "boneWhisperer",
+            "graceOfDormenatus",
+            "kingOfAThousandBattles",
+            "kingsStep",
+            "legendaryLungs",
+            "lucernaesLantern",
+            "redFist",
+            "scholarOfDeath",
+            "swordsmansPromise",
+            "synchronizedStrike",
+            "zeroPresence"
+        ]
+    }
+}

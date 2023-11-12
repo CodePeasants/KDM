@@ -8,6 +8,4 @@ set "module_name=!module_name:.bat=.py!"
 
 set cmd_path=%root_path%..\kdm\cli\%module_name%
 
-call %root_path%..\venv\Scripts\activate
-python %cmd_path%
-deactivate
+%root_path%..\venv\Scripts\python %cmd_path%
