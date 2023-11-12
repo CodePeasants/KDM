@@ -1,6 +1,7 @@
 import random
 from typing import Union
 from kdm.events import Augury, Intimacy
+from tabulate import tabulate
 
 
 class BabyMaker:
@@ -17,10 +18,10 @@ class BabyMaker:
             mother: Union[str,list,None]=None,
             male_chance=0,
             augury_bonus=0,
-            intimacy_bonus=0
+            intimacy_bonus=0,
+            risky_rerolls=True
         ):
-        endeavor = self.settlement["endeavors"]
-        if endeavor <= 0:
+        if self.settlement["endeavors"] <= 0:
             print("No endeavor, no babies to make!")
             return
 
@@ -38,7 +39,7 @@ class BabyMaker:
         else:
             mother = [x.lower() for x in mother]
         
-        print(f"Attempting to make babies with {endeavor} endeavor.")
+        print(f"Attempting to make babies with {self.settlement['endeavors']} endeavor.")
         result = []
         while self.settlement["endeavors"] or self.settlement.temp_endeavor:
             print("-"*20)
@@ -48,12 +49,12 @@ class BabyMaker:
                 new_gender = "M"
 
             if self.settlement['endeavors']:
-                print(f"Endeavor {self.settlement['endeavors']} --> {self.settlement['endeavors']}")
+                print(f"Endeavor {self.settlement['endeavors']} --> {self.settlement['endeavors'] - 1}")
                 self.settlement['endeavors'] -= 1
                 augury = Augury.select_augurer(self.settlement, father, mother, augury_bonus)
                 if augury.augury():
                     intimacy = Intimacy.select_mates(self.settlement, initiator=augury.survivor, father=father, mother=mother, bonus=intimacy_bonus)
-                    new_survivors = intimacy.intimacy(gender=new_gender)
+                    new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
                     result.extend(new_survivors)
             else:
                 candidate_id = list(self.settlement.temp_endeavor.keys())[0]
@@ -64,7 +65,7 @@ class BabyMaker:
                         self.settlement.temp_endeavor.pop(candidate_id)
                     if Augury(self.settlement, candidate, augury_bonus).augury():
                         intimacy = Intimacy.select_mates(self.settlement, initiator=candidate, father=father, mother=mother, bonus=intimacy_bonus)
-                        new_survivors = intimacy.intimacy(gender=new_gender)
+                        new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
                         result.extend(new_survivors)
                 else:
                     if self.settlement.temp_endeavor[candidate_id] > 0:
@@ -77,8 +78,25 @@ class BabyMaker:
         print("="*20)
         print(f"COMPLETE: {len(result)} new survivors created!")
         if result:
-            for survivor in result:
-                print(survivor["name"], survivor["gender"], f"Re-roll: {survivor['reroll']}")
+            headers = ["Name", "Gender", "Reroll", "MOV", "STR", "EVA", "ACC", "LCK", "Cour", "Und", "XP", "Prof", "Surv"]
+            table = [[
+                x['name'],
+                x['gender'],
+                x['reroll'],
+                x['attributes']['MOV'],
+                x['attributes']['STR'],
+                x['attributes']['EVA'],
+                x['attributes']['ACC'],
+                x['attributes']['LCK'],
+                x['courage'],
+                x['understanding'],
+                x['xp'],
+                x.get('weaponProficiency', {}).get('rank', 0),
+                x['survival']
+            ] for x in result]
+            print(tabulate(table, headers=headers))
+            # for survivor in result:
+                # print(survivor["name"], survivor["gender"], f"Re-roll: {survivor['reroll']}")
     
     
 

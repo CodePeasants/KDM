@@ -1,6 +1,6 @@
 """
 Usage:
-    kdm-make-babies <file> [--settlement=SET --father=FA... --mother=MO... --output-path=OUT --male-chance=MC --augury-bonus=AB --intimacy-bonus=IB]
+    kdm-make-babies [<file> --settlement=SET --father=FA... --mother=MO... --output-path=OUT --male-chance=MC --augury-bonus=AB --intimacy-bonus=IB --risky-rerolls]
 
 Options:
     <file>                          Path to the Scribe for KDM backup JSON file containing game data.
@@ -11,23 +11,31 @@ Options:
     --male-chance=MC, -c=MC         Chance that new babies will be male (number from 0-1 ) [default: 0.1]
     --augury-bonus=AB, -a=AB        Bonus to augury rolls. [default: 0]
     --intimacy-bonus=IB, -i=IB      Bonus to intimacy rolls. [default: 0]
+    --risky-rerolls, -r             Use once in a lifetime re-roll on 2 or 3 for intamcy as well. [default: False]
 """
 from docopt import docopt
+import os
 from kdm.scribe import Scribe, Settlement
 from kdm.baby_maker import BabyMaker
+from kdm import constants
 
 
 def main(**kwargs):
-    scribe = Scribe.load(kwargs["<file>"])
+    if not (data_path := kwargs["<file>"]):
+        data_path = os.path.join(constants.RESOURCE_PATH, "scribe_backup.json")
+        print(f"No Scribe data file provided, using test file: {data_path}")
+
+    scribe = Scribe.load(data_path)
     settlement = Settlement(scribe, kwargs["--settlement"])
     maker = BabyMaker(settlement)
     
     maker.make_babies(
-        father=kwargs["father"],
-        mother=kwargs["mother"],
+        father=kwargs["--father"],
+        mother=kwargs["--mother"],
         male_chance=float(kwargs["--male-chance"]),
         augury_bonus=int(kwargs["--augury-bonus"]),
-        intimacy_bonus=int(kwargs["--intimacy-bonus"])
+        intimacy_bonus=int(kwargs["--intimacy-bonus"]),
+        risky_rerolls=kwargs["--risky-rerolls"]
     )
 
     maker.save(kwargs["--output-path"])

@@ -14,17 +14,33 @@ from kdm.principles import PrincipleRegistry
 from kdm.events import Courage, Understanding, DragonInheritance
 
 
-with open(os.path.abspath("../resources/survivor.json"), "r", encoding="utf-8") as fh:
+with open(os.path.join(constants.RESOURCE_PATH, "survivor.json"), "r", encoding="utf-8") as fh:
     NEW_SURVIVOR_TEMPLATE = json.loads(
         fh.read().replace("’", "'")
     )
 
 
-class Scribe:
+class DictWrapper:
+    def __getitem__(self, key):
+        return self.data[key]
+    
+    def __setitem__(self, key, value):
+        self.data[key] = value
+    
+    def __delitem__(self, key):
+        del self.data[key]
+    
+    def __contains__(self, key):
+        return key in self.data
+    
+    def __len__(self):
+        return len(self.data)
+
+
+class Scribe(DictWrapper):
 
     def __init__(self, data: dict):
         self.data = data
-        self.temp_endeavor = {}
 
     @classmethod
     def load(cls, path: str):
@@ -46,11 +62,11 @@ class Scribe:
         out_data = json.dumps(self.data)
         out_data.replace("'","’")
         with open(out_path, "w") as fh:
-            fh.wrte(out_data)
+            fh.write(out_data)
         print(f"Saved scribe backup to: {out_path}")
 
 
-class Settlement:
+class Settlement(DictWrapper):
     """
     scribe = Scribe.load("file-path.json")
     settlement = Settlement(scribe, "Roshi's Island")
@@ -58,6 +74,7 @@ class Settlement:
     fighting_arts = None
 
     def __init__(self, parent: Scribe, name: str) -> None:
+        self.temp_endeavor = {}
         self.parent = parent
         self.name = name
         candidates = []
@@ -82,21 +99,6 @@ class Settlement:
             with open(arts_path, "r", encoding="utf-8") as fh:
                 self.__class__.fighting_arts = json.load(fh)
     
-    def __getitem__(self, key):
-        return self.data[key]
-    
-    def __setitem__(self, key, value):
-        self.data[key] = value
-    
-    def __delitem__(self, key):
-        del self.data[key]
-    
-    def __contains__(self, key):
-        return key in self.data
-    
-    def __len__(self):
-        return len(self.data)
-    
     @property
     def expansions(self):
         """List of expansions this settlement is using."""
@@ -105,6 +107,21 @@ class Settlement:
     @staticmethod
     def can_mate(survivor):
         return survivor["dead"] is False and "destroyedGenitals" not in survivor["severeInjuries"]
+
+    def get_parents(self, survivor):
+        result = []
+        father_id = survivor["parents"].get("father")
+        if father_id:
+            result.append(self.survivors[father_id])
+        else:
+            result.append(None)
+
+        mother_id = survivor["parents"].get("mother")
+        if mother_id:
+            result.append(self.survivors[mother_id])
+        else:
+            result.append(None)
+        return tuple(result)
 
     def save(self, out_path=None):
         self.parent.save(out_path)
@@ -123,11 +140,14 @@ class Settlement:
         self.data["deathCount"] += 1
 
         # Apply principle effects.
-        for principle_key in self.settlement["principles"].values():
+        for principle_key in self["principles"].values():
             if not principle_key:
                 continue
-            principle = PrincipleRegistry[principle_key]()
-            principle.death(self)
+            principle = PrincipleRegistry.principles.get(principle_key)
+            if principle:
+                principle().death(self)
+            else:
+                print(f"Principle: {principle_key} not implemented.")
 
     def add_random_resource(self, resource_type="Basic"):
         # TODO - get the actual counts of each card type in the physical deck, so I can weight
@@ -139,6 +159,13 @@ class Settlement:
         self.data["storage"]["resources"][resource_type][selected] += 1
         print("Added 1 {} to settlement storage".format(selected))
     
+    def remove_resource(self):
+        total_resources = 0
+        for resource_type in self.data["storage"]["resources"].values():
+            for resource, count in resource_type.items():
+                total_resources += count
+        print(f"MANUAL: Remove 1 resource from settlement storage.")
+
     def add_random_fighting_art(self, survivor):
         expansions = self.expansions
         candidates = []
@@ -152,9 +179,12 @@ class Settlement:
         survivor["fightingArts"].append({"id": choice})
         print(f"Added random fighting art: {choice} to {survivor['name']}.")
         return choice
-    
+
     def new_survivor(self, father=None, mother=None, name=None, gender="F", strength=0, dragon_inheritance=None, abilities=None) -> dict:
-        dragon_inheritance = dragon_inheritance if dragon_inheritance is not None else []
+        if dragon_inheritance is None:
+            dragon_inheritance = []
+        elif not isinstance(dragon_inheritance, (list, tuple)):
+            dragon_inheritance = [dragon_inheritance]
 
         new_survivor = copy.deepcopy(NEW_SURVIVOR_TEMPLATE)
         new_survivor["id"] = str(uuid.uuid4())
@@ -162,6 +192,7 @@ class Settlement:
         
         if name is None:
             name = names.get_name(gender=gender, exclude=[x["name"] for x in self.survivors.values()])
+        print(f"New survivor's name is: {name}")
         new_survivor["name"] = name
 
         new_survivor["gender"] = gender
@@ -180,20 +211,22 @@ class Settlement:
         }
 
         # Apply bonuses from principles.
-        for principle_key in self.settlement["principles"].values():
+        for principle_key in self.data["principles"].values():
             if not principle_key:
                 continue
-            principle = PrincipleRegistry[principle_key]()
-            principle.newborn(new_survivor, self)
+            principle = PrincipleRegistry.principles.get(principle_key)
+            if principle:
+                principle().newborn(new_survivor, self)
 
         # Apply bonuses from innovations.
-        for innovation_key in self.settlement["innovations"]:
-            innovation = InnovationRegistry[innovation_key]()
-            innovation.newborn(new_survivor, self)
+        for innovation_key in self.data["innovations"]:
+            innovation = InnovationRegistry.innovations.get(innovation_key)
+            if innovation:
+                innovation().newborn(new_survivor, self)
         
         # Add abilitites passed in.
         abilities = abilities if abilities else []
-        owned_abilitites = {x["id"] for x in new_survivor["abilitites"]}
+        owned_abilitites = {x["id"] for x in new_survivor["abilities"]}
         for ability in abilities:
             if ability not in owned_abilitites:
                 new_survivor["abilities"].append({"id": ability})
@@ -203,14 +236,15 @@ class Settlement:
             if inheritance == DragonInheritance.NONE:
                 continue
             elif inheritance == DragonInheritance.COURAGE:
-                Courage(new_survivor, self).give(
-                    int(math.floor(float(max(father["courage"], mother["courage"])) / 2.0))
-                )
+                courage = int(math.floor(float(max(father["courage"], mother["courage"])) / 2.0))
+                Courage(new_survivor, self).give(courage)
+                print(f"Dragon Inheritance - Courage: +{courage}")
             elif inheritance == DragonInheritance.UNDERSTANDING:
-                Understanding(new_survivor, self).give(
-                    int(math.floor(float(max(father["understanding"], mother["understanding"])) / 2.0))
-                )
+                understanding = int(math.floor(float(max(father["understanding"], mother["understanding"])) / 2.0))
+                Understanding(new_survivor, self).give(understanding)
+                print(f"Dragon Inheritance - Understanding: +{understanding}")
             elif inheritance == DragonInheritance.FIGHTING_ART:
+                print("Dragon Inheritance - Fighting Art")
                 owned = {x["id"] for x in new_survivor["fightingArts"]}
                 selected = False
                 for parent in (father, mother):
@@ -229,8 +263,9 @@ class Settlement:
             elif inheritance == DragonInheritance.DISORDERS:
                 unique_disorders = {x["id"] for x in father["disorders"] + mother["disorders"] + new_survivor["disorders"]}
                 new_survivor["disorders"] = [{"id": x} for x in unique_disorders]
+                print(f"Dragon Inheritance - Disorders: {unique_disorders}")
             elif inheritance == DragonInheritance.SURNAME:
-                print(f"MANUAL: {new_survivor['name']} should inherit the surname of a parent ({father['name']}, {mother['name']})")
+                print(f"MANUAL: Dragon Inheritance - Surname: {new_survivor['name']} should inherit the surname of a parent ({father['name']}, {mother['name']})")
         # new_survivor["abilities"] = [{"id": "prepared"}, ...]
         # Dragon traits / constellations?
 

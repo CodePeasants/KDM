@@ -290,18 +290,20 @@ class Augury:
             _result.append(-_x["understanding"])
 
             # Have they reached the survival limit?
-            _result.append(-int(_x["survival"] < self.settlement["survivalLimit"]))
+            _result.append(-int(_x["survival"] < settlement["survivalLimit"]))
 
             # Males are better for augury, because they are less likely to die in childbirth.
             #  So any survival or understanding gains are more likely to be beneficial.
             _result.append(-int(_x["gender"] == "M"))
+
+            return _result
         
         candidates = [x for x in settlement.survivors.values() if settlement.can_mate(x)]
         if not candidates:
             print("No living, breedable candidates for augury!")
             return
         
-        return cls(sorted(candidates, key=_augur_filter)[0], settlement, bonus=bonus)
+        return cls(settlement, survivor=sorted(candidates, key=_augur_filter)[0], bonus=bonus)
 
 
 class Intimacy:
@@ -326,45 +328,60 @@ class Intimacy:
         life_principle_key = self.settlement["principles"]["newLife"]
         if life_principle_key and life_principle_key in PrincipleRegistry.principles:
             life_principle = PrincipleRegistry.principles[life_principle_key]()
-            self.rolls, self.roll = life_principle.roll_intimacy()
+            self.rolls, self.roll = life_principle.intimacy_roll()
         else:
             roll = kdm.roll()
             self.roll = roll
             self.rolls = [roll]
 
-    def intimacy(self, gender="F"):
+    def re_roll(self):
+        """Attempt to re-roll. Return True if you did, False if you cannot."""
+        survival_fittest = self.settlement["principles"]["newLife"] == "survivalOfTheFittest"
+        if not survival_fittest:
+            return False
+        
+        if self.mother["reroll"]:
+            self.mother["reroll"] = False
+            print("Using the self.mother's once in a lifetime re-roll (Survival of the Fittest).")
+        elif self.father["reroll"]:
+            self.father["reroll"] = False
+            print("Using the self.father's once in a lifetime re-roll (Survival of the Fittest).")
+        else:
+            print("No more re-rolls available.")
+            return False
+
+        self.rolls = [max(self.rolls), kdm.roll()]
+        if survival_fittest:
+            self.roll = min(self.rolls)
+        else:
+            self.roll = max(self.rolls)
+        print(f"Re-roll value: {self.rolls[-1]} - new selection: {self.roll}")
+        return True
+
+    def intimacy(self, gender="F", risky_rerolls=True):
         if self.settlement["campaign"].lower() == "potstars":
-            return self.intamacy_potstars(gender=gender)
+            return self.intamacy_potstars(gender=gender, risky_rerolls=risky_rerolls)
         else:
             raise ValueError(f"Campagin: {self.settlement['campaign']} intimacy rules not implemented.")
 
-    def intamacy_potstars(self, gender="F"):
+    def intamacy_potstars(self, gender="F", risky_rerolls=True):
         new_survivors = []
         if not self.roll:
-            self.roll()
+            self.roll_intimacy()
 
         survival_fittest = self.settlement["principles"]["newLife"] == "survivalOfTheFittest"
         
         if self.roll_total == 1:
-            if survival_fittest:
-                re_rolling = False
-                if self.mother["reroll"]:
-                    self.mother["reroll"] = False
-                    re_rolling = True
-                    print("Using the self.mother's once in a lifetime re-roll (Survival of the Fittest).")
-                elif self.father["reroll"]:
-                    self.father["reroll"] = False
-                    re_rolling = True
-                    print("Using the self.father's once in a lifetime re-roll (Survival of the Fittest).")
+            if self.re_roll():
+                return self.intamacy_potstars(gender=gender)
 
-                if re_rolling:
-                    self.rolls = [max(self.rolls), kdm.roll()]
-                    return self.intamacy_potstars(gender=gender)
-
-            print("No re-rolls available or you rolled snake eyes and did not have 2 re-rolls. Both survivors are killed.")
+            print("Both survivors are killed.")
             self.settlement.kill_survivor(self.father["id"], "Childbirth.")
             self.settlement.kill_survivor(self.mother["id"], "Childbirth.")
         elif self.roll_total in {2, 3}:
+            if risky_rerolls and self.re_roll():
+                return self.intamacy_potstars(gender=gender)
+            
             print("The child perishes in childbirth and the self.mother's genitals are destroyed.")
             self.mother["severeInjuries"].append("destroyedGenitals")
             # TODO it says to add "scar" to the self.mother, which is a dragon trait, but I don't see where to add that in the file
@@ -374,20 +391,22 @@ class Intimacy:
                 print("MANUAL: Give new survivor the Noble Surname dragon trait (Protect the Young)")
                 # TODO figure out how to do this automatically.
             print("A strong child is born with +1 strength.")
-            new_survivors.append(self.settlement.new_survivor(gender=gender, strength=1))
+            new_survivors.append(self.settlement.new_survivor(father=self.father, mother=self.mother, gender=gender, strength=1))
         elif self.roll_total in {6, 7, 8, 9}:
             dragon_inheritance = []
             if survival_fittest and self.roll_total in {6, 7}:
-                dragon_inheritance.append(self.select_dragon_inheritance(self.father, self.mother))
+                dragon_inheritance.append(self.select_dragon_inheritance())
             print("A new survivor with 1 dragon inheritance is born.")
-            dragon_inheritance.append(self.select_dragon_inheritance(self.father, self.mother, exclude=dragon_inheritance))
-            new_survivors.append(self.settlement.new_survivor(gender=gender, dragon_inheritance=dragon_inheritance))
+            dragon_inheritance.append(self.select_dragon_inheritance(exclude=dragon_inheritance))
+            new_survivors.append(self.settlement.new_survivor(father=self.father, mother=self.mother, gender=gender, dragon_inheritance=dragon_inheritance))
         else:
             print("Twins are born! Each with 1 dragon inheritance.")
             new_survivors.append(
                 self.settlement.new_survivor(
+                    father=self.father,
+                    mother=self.mother, 
                     gender=gender,
-                    dragon_inheritance=self.select_dragon_inheritance(self.father, self.mother)
+                    dragon_inheritance=self.select_dragon_inheritance()
                 )
             )
 
@@ -402,6 +421,8 @@ class Intimacy:
             
             new_survivors.append(
                 self.settlement.new_survivor(
+                    father=self.father,
+                    mother=self.mother, 
                     gender=gender,
                     dragon_inheritance=self.select_dragon_inheritance(self.father, self.mother),
                     abilities=abilities
@@ -487,6 +508,7 @@ class Intimacy:
             # Other attributes.
             _result.append(_x["understanding"])
             _result.append(_x["courage"])
+            return _result
 
         for search_gender in search_genders:
             candidates = [
@@ -507,7 +529,7 @@ class Intimacy:
             f"Father: {result[0]['name']} (und: {result[0]['understanding']}, reroll: {result[0]['reroll']}) "
             f"Mother: {result[1]['name']} (und: {result[1]['understanding']}, reroll: {result[1]['reroll']})"
         )
-        return cls(father, mother, settlement, bonus=bonus)
+        return cls(result[0], result[1], settlement, bonus=bonus)
 
 
 class DragonInheritance(Enum):
