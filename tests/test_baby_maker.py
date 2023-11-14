@@ -10,5 +10,6 @@ def test_make_babies():
     settlement = Settlement(scribe, "Roshi's Island")
 
     settlement['endeavors'] = 1000
+    settlement['storage']['resources']['Basic']['loveJuice'] = 10
     maker = BabyMaker(settlement)
     maker.make_babies()

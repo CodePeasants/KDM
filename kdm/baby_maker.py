@@ -19,11 +19,12 @@ class BabyMaker:
             male_chance=0,
             augury_bonus=0,
             intimacy_bonus=0,
-            risky_rerolls=True
+            risky_rerolls=True,
+            use_love_juice=True
         ):
         if self.settlement["endeavors"] <= 0:
             print("No endeavor, no babies to make!")
-            return
+            return []
 
         if father is None:
             father = []
@@ -39,8 +40,27 @@ class BabyMaker:
         else:
             mother = [x.lower() for x in mother]
         
-        print(f"Attempting to make babies with {self.settlement['endeavors']} endeavor.")
         result = []
+        if use_love_juice:
+            juices = self.settlement["storage"]["resources"]["Basic"]["loveJuice"]
+            if juices:
+                print(f"Using {juices} love juice resources to trigger intimacy events.")
+                for i in range(juices):
+                    intimacy = Intimacy.select_mates(self.settlement, father=father, mother=mother, bonus=intimacy_bonus)
+                    if intimacy is not None:
+                        print("-"*20)
+                        if random.uniform(0, 1) >= male_chance:
+                            new_gender = "F"
+                        else:
+                            new_gender = "M"
+                        self.settlement["storage"]["resources"]["Basic"]["loveJuice"] -= 1
+                        new_survivors = intimacy.intimacy(gender=new_gender, risky_rerolls=risky_rerolls)
+                        result.extend(new_survivors)
+                    else:
+                        print("Could not find a pair of mates! Stopped consuming love juice.")
+                        break
+        
+        print(f"Attempting to make babies with {self.settlement['endeavors']} endeavor.")
         while self.settlement["endeavors"] or self.settlement.temp_endeavor:
             print("-"*20)
             if random.uniform(0, 1) >= male_chance:
@@ -97,4 +117,5 @@ class BabyMaker:
                 x['survival']
             ] for x in result]
             print(tabulate(table, headers=headers))
+        return result
     

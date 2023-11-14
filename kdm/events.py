@@ -361,7 +361,7 @@ class Intimacy:
         if self.settlement.has_reroll(self.mother):
             self.settlement.use_reroll(self.mother)
             print("Using the self.mother's once in a lifetime re-roll (Survival of the Fittest).")
-        if self.settlement.has_reroll(self.father):
+        elif self.settlement.has_reroll(self.father):
             self.settlement.use_reroll(self.father)
             print("Using the self.father's once in a lifetime re-roll (Survival of the Fittest).")
         else:
@@ -397,8 +397,16 @@ class Intimacy:
             self.settlement.kill_survivor(self.father["id"], "Childbirth.")
             self.settlement.kill_survivor(self.mother["id"], "Childbirth.")
         elif self.roll_total in {2, 3}:
-            if risky_rerolls and self.re_roll():
-                return self.intamacy_potstars(gender=gender)
+            if risky_rerolls:
+                # If both rolls were 3 or lower (but above 1) and we don't have access to rerolls for both parents and the settlement
+                #  has Survival of the Fittest, there is no point in consuming just one re-roll, this intimacy wont be able to result
+                #  in a child anyway. Save the re-roll.
+                if all([(x + self.bonus) <= 3 for x in self.rolls]) and \
+                        not all([self.settlement.has_reroll(self.mother), self.settlement.has_reroll(self.father)]) and \
+                        self.settlement["principles"]["newLife"] == "survivalOfTheFittest":
+                    pass
+                elif self.re_roll():
+                    return self.intamacy_potstars(gender=gender)
             
             self.mother["severeInjuries"].append("destroyedGenitals")
             index = constants.POTSTARS_CONSTELLATION_MAP["scar"]
