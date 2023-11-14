@@ -1,11 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
-set root_path=%~dp0
-set script_name=%~nx0
 
-set "module_name=!script_name:-=_!"
+set ROOT_PATH=%~dp0
+set SCRIPT_NAME=%~nx0
+set "module_name=!SCRIPT_NAME:-=_!"
 set "module_name=!module_name:.bat=.py!"
 
-set cmd_path=%root_path%..\kdm\cli\%module_name%
+REM Set up any missing requirements first (create venv, install requirements, setup env...)
+call %ROOT_PATH%kdm-setup.bat
 
-%root_path%..\venv\Scripts\python %cmd_path% %*
+set cmd_path=%ROOT_PATH%..\kdm\cli\%module_name%
+
+%ROOT_PATH%..\venv\Scripts\python %cmd_path% %*
