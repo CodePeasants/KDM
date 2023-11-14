@@ -9,15 +9,10 @@ back into the app.
 
 # Install
 - Install python.
+- Install git.
 - Clone this repo.
-- Create a virtual environment at the root of the repo
-    - ```python3 -m venv venv```
-- Install requirements
-    - ```.\venv\Scripts\activate```
-    - ```pip install -r requirements.txt```
-- Add kdm project to the venv site packages.
-    - Add a `kdm.pth` file under `venv\Lib\site-packages` that just contains the absolute path to the git repo
-- Optionally you can add the CLI directory to your `PATH` environment variable.
+- Run the bat scripts in the `bin` directory to use. Optionally you can add the `bin` directory to your `PATH` environment variable.
+    - **Note:** The first time you run a command, it will create a virtual environment and install requirements automatically.
 
 # Use
 The CLI is in the form of a series of `bat` scripts prefixed with `kdm-`. If you've added 
