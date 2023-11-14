@@ -24,7 +24,7 @@
         "value": 0,
         "light": false
     },
-    "reroll": true,
+    "reroll": false,
     "hasReroll": false,
     "xp": 0,
     "courage": 0,

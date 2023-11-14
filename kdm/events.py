@@ -2,6 +2,7 @@ import sys
 from enum import Enum
 from functools import partial
 import kdm
+from kdm import constants
 
 
 class Age:
@@ -135,6 +136,12 @@ class Understanding:
                     print(f"MANUAL: later understanding events are not implemented. Do them manually for {self.survivor['name']}")
                 else:
                     fnc()
+        
+        # Set constellations for people of the stars.
+        if self.settlement['campaign'].lower() == "potstars":
+            if self.survivor["understanding"] >= self.MAX:
+                x, y = constants.POTSTARS_CONSTELLATION_MAP["max_understanding"]
+                self.survivor["constellationMap"][x][y] = True
 
     def awake(self):
         roll = kdm.roll()
@@ -154,7 +161,10 @@ class Understanding:
             self.survivor["attributes"]["EVA"] += 1
             fighting_art = self.settlement.add_random_fighting_art(self.survivor)
             print(f"Gained +1 permanent evasion and {fighting_art} fighting art.")
-            print("MANUAL: You must manually add the noble surname.")  
+            if self.settlement["campaign"].lower() == "potstars":
+                index = constants.POTSTARS_CONSTELLATION_MAP["noble_surname"]
+                self.survivor["constellationMap"][index[0]][index[1]] = True
+                print("People of the Stars: Gained the Noble Surname constellation.")  
         else:
             self.survivor["attributes"]["EVA"] += 1
             if {"id": "championsRite"} not in self.survivor["fightingArts"]:
@@ -193,6 +203,12 @@ class Courage:
                     print(f"MANUAL: later courage events are not implemented. Do them manually for {self.survivor['name']}")
                 else:
                     fnc()
+        
+        # Set constellations for people of the stars.
+        if self.settlement['campaign'].lower() == "potstars":
+            if self.survivor["courage"] >= self.MAX:
+                x, y = constants.POTSTARS_CONSTELLATION_MAP["max_courage"]
+                self.survivor["constellationMap"][x][y] = True
 
     def awake(self):
         roll = kdm.roll()
@@ -212,8 +228,10 @@ class Courage:
         elif roll <= 7:
             self.survivor["attributes"]["STR"] += 1
             fighting_art = self.settlement.add_random_fighting_art(self.survivor)
-            print(f"Added +1 permanent strength and the {fighting_art} fighting art.")
-            print("MANUAL: You must add the Reincarnated surname.")
+            if self.settlement["campaign"].lower() == "potstars":
+                index = constants.POTSTARS_CONSTELLATION_MAP["reincarnated_surname"]
+                self.survivor["constellationMap"][index[0]][index[1]] = True
+            print(f"Added +1 permanent strength, the Reincarnated surname and the {fighting_art} fighting art.")
         else:
             self.survivor["attributes"]["ACC"] += 1
             if {"id": "unbreakable"} not in self.survivor["fightingArts"]:
@@ -274,7 +292,7 @@ class Augury:
             _result.append(-int(_x["understanding"] >= Augury.UNDERSTANDING_BONUS))
 
             # Do they have their once in a lifetime re-roll?
-            _result.append(-int(_x["reroll"]))
+            _result.append(-int(settlement.has_reroll(_x)))
 
             # Do they have less than the maximum understanding (room to grow)?
             _result.append(-int(_x["understanding"] < Understanding.MAX))
@@ -340,11 +358,11 @@ class Intimacy:
         if not survival_fittest:
             return False
         
-        if self.mother["reroll"]:
-            self.mother["reroll"] = False
+        if self.settlement.has_reroll(self.mother):
+            self.settlement.use_reroll(self.mother)
             print("Using the self.mother's once in a lifetime re-roll (Survival of the Fittest).")
-        elif self.father["reroll"]:
-            self.father["reroll"] = False
+        if self.settlement.has_reroll(self.father):
+            self.settlement.use_reroll(self.father)
             print("Using the self.father's once in a lifetime re-roll (Survival of the Fittest).")
         else:
             print("No more re-rolls available.")
@@ -382,21 +400,24 @@ class Intimacy:
             if risky_rerolls and self.re_roll():
                 return self.intamacy_potstars(gender=gender)
             
-            print("The child perishes in childbirth and the self.mother's genitals are destroyed.")
             self.mother["severeInjuries"].append("destroyedGenitals")
-            # TODO it says to add "scar" to the self.mother, which is a dragon trait, but I don't see where to add that in the file
-            print(f"MANUAL: Add Scar Dragon trait to {self.mother['name']}")
+            index = constants.POTSTARS_CONSTELLATION_MAP["scar"]
+            self.mother["constellationMap"][index[0]][index[1]] = True
+            print("The child perishes in childbirth, the self.mother's genitals are destroyed and they gained the Scar constellation.")
         elif self.roll_total in {4, 5}:
             if self.settlement["principles"]["newLife"] == "protectTheYoung":
-                print("MANUAL: Give new survivor the Noble Surname dragon trait (Protect the Young)")
-                # TODO figure out how to do this automatically.
+                index = constants.POTSTARS_CONSTELLATION_MAP["noble_surname"]
+                self.mother["constellationMap"][index[0]][index[1]] = True
+                print("(Protect the Young) - new survivor gained the Noble Surname dragon trait.")
             print("A strong child is born with +1 strength.")
             new_survivors.append(self.settlement.new_survivor(father=self.father, mother=self.mother, gender=gender, strength=1))
         elif self.roll_total in {6, 7, 8, 9}:
             dragon_inheritance = []
             if survival_fittest and self.roll_total in {6, 7}:
+                print("A new survivor with 2 dragon inheritances is born. (Survival of the Fittest)")
                 dragon_inheritance.append(self.select_dragon_inheritance())
-            print("A new survivor with 1 dragon inheritance is born.")
+            else:
+                print("A new survivor with 1 dragon inheritance is born.")
             dragon_inheritance.append(self.select_dragon_inheritance(exclude=dragon_inheritance))
             new_survivors.append(self.settlement.new_survivor(father=self.father, mother=self.mother, gender=gender, dragon_inheritance=dragon_inheritance))
         else:
@@ -490,7 +511,7 @@ class Intimacy:
                 _result.append(sys.maxsize)
             
             # Do they have their once in a lifetime re-roll?
-            _result.append(-int(_x["reroll"]))
+            _result.append(-int(settlement.has_reroll(_x)))
 
             # If a survivor has 6 or more courage and their child inherits half
             #  with a dragon inheritance, there's a whopping 30% chance to trigger
@@ -526,8 +547,8 @@ class Intimacy:
 
         print(
             "Selected mates - "
-            f"Father: {result[0]['name']} (und: {result[0]['understanding']}, reroll: {result[0]['reroll']}) "
-            f"Mother: {result[1]['name']} (und: {result[1]['understanding']}, reroll: {result[1]['reroll']})"
+            f"Father: {result[0]['name']} (und: {result[0]['understanding']}, reroll: {settlement.has_reroll(result[0])}) "
+            f"Mother: {result[1]['name']} (und: {result[1]['understanding']}, reroll: {settlement.has_reroll(result[1])})"
         )
         return cls(result[0], result[1], settlement, bonus=bonus)
 

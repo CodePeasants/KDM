@@ -43,7 +43,8 @@ class Scribe(DictWrapper):
         self.data = data
 
     @classmethod
-    def load(cls, path: str):
+    def load(cls, path: str=constants.TEST_DATA_PATH):
+        path = os.path.abspath(os.path.expandvars(path))
         with open(path, "r", encoding="utf-8") as fh:
             string_data = fh.read()
         
@@ -73,7 +74,7 @@ class Settlement(DictWrapper):
     """
     fighting_arts = None
 
-    def __init__(self, parent: Scribe, name: str) -> None:
+    def __init__(self, parent: Scribe, name: str="Roshi's Island") -> None:
         self.temp_endeavor = {}
         self.parent = parent
         self.name = name
@@ -99,6 +100,12 @@ class Settlement(DictWrapper):
             with open(arts_path, "r", encoding="utf-8") as fh:
                 self.__class__.fighting_arts = json.load(fh)
     
+    @classmethod
+    def load(cls, path=constants.TEST_DATA_PATH, name="Roshi's Island"):
+        scribe = Scribe.load(path)
+        settlement = cls(scribe, name)
+        return settlement
+
     @property
     def expansions(self):
         """List of expansions this settlement is using."""
@@ -107,6 +114,21 @@ class Settlement(DictWrapper):
     @staticmethod
     def can_mate(survivor):
         return survivor["dead"] is False and "destroyedGenitals" not in survivor["severeInjuries"]
+    
+    @staticmethod
+    def has_reroll(survivor):
+        return not survivor["reroll"]
+    
+    @classmethod
+    def use_reroll(cls, survivor):
+        if not cls.has_reroll(survivor):
+            raise RuntimeError(f"{survivor['name']} does not have a once in a lifetime reroll to use!")
+        survivor["reroll"] = True
+
+    def get_survivor(self, name):
+        for survivor in self.survivors.values():
+            if survivor["name"].lower() == name.lower():
+                return survivor
 
     def get_parents(self, survivor):
         result = []
@@ -210,6 +232,9 @@ class Settlement(DictWrapper):
             "SPD": 0
         }
 
+        if self['campaign'].lower() == "potstars":
+            new_survivor["constellationMap"] = [[False]*4, [False]*4, [False]*4, [False]*4]
+
         # Apply bonuses from principles.
         for principle_key in self.data["principles"].values():
             if not principle_key:
@@ -244,22 +269,25 @@ class Settlement(DictWrapper):
                 Understanding(new_survivor, self).give(understanding)
                 print(f"Dragon Inheritance - Understanding: +{understanding}")
             elif inheritance == DragonInheritance.FIGHTING_ART:
-                print("Dragon Inheritance - Fighting Art")
                 owned = {x["id"] for x in new_survivor["fightingArts"]}
                 selected = False
+                new_art = None
                 for parent in (father, mother):
                     if selected:
                         break
                     for fighting_art in parent["fightingArts"]:
                         if fighting_art["id"] not in owned:
+                            new_art = fighting_art["id"]
                             new_survivor["fightingArts"].append(fighting_art)
                             selected = True
                             break
                 if not selected:
                     print(
-                        f"MANUAL: {new_survivor['name']} was supposed to get a fighting art as a Dragon Inheritance from their "
-                        f"parents ({father['name']}, {mother['name']}), but a new unique are was not able to be selected!"
+                        f"{new_survivor['name']} was supposed to get a fighting art as a Dragon Inheritance from their "
+                        f"parents ({father['name']}, {mother['name']}), but a new unique art was not able to be selected!"
                     )
+                else:
+                    print(f"Dragon Inheritance - Fighting Art: {new_art}")
             elif inheritance == DragonInheritance.DISORDERS:
                 unique_disorders = {x["id"] for x in father["disorders"] + mother["disorders"] + new_survivor["disorders"]}
                 new_survivor["disorders"] = [{"id": x} for x in unique_disorders]
@@ -269,6 +297,45 @@ class Settlement(DictWrapper):
 
         self.parent["survivors"][self.id][new_survivor["id"]] = new_survivor
         self.data["population"] += 1
+
+        # Set constellations for people of the stars.
+        if self['campaign'].lower() == "potstars":
+            constellations = []
+            if new_survivor["attributes"]["STR"] >= 3:
+                constellations.append("3_strength")
+            
+            if new_survivor["attributes"]["ACC"] >= 1:
+                constellations.append("1_accuracy")
+            
+            if "destined" in {x["id"] for x in new_survivor["disorders"]}:
+                constellations.append("destined_disorder")
+            
+            for fighting_art in new_survivor["fightingArts"]:
+                if fighting_art["id"] == "fatedBlow":
+                    constellations.append("fated_blow_art")
+                elif fighting_art["id"] == "frozenStart":
+                    constellations.append("frozen_start_secret_art")
+                elif fighting_art["id"] == "championsRite":
+                    constellations.append("champions_rite_art")
+                elif fighting_art["id"] == "unbreakable":
+                    constellations.append("unbreakable_art")
+            
+            for ability in new_survivor["abilities"]:
+                if ability["id"] == "pristine":
+                    constellations.append("pristine_ability")
+                elif ability["id"] == "iridescentHide":
+                    constellations.append("iridescent_hide_ability")
+                elif ability["id"] == "oraclesEye":
+                    constellations.append("oracles_eye_ability")
+            
+            if new_survivor.get("weaponProficiency", {}).get("rank", 0) >= constants.WEAPON_MASTRY_RANK:
+                constellations.append("weapon_mastery")
+
+            for constellation in constellations:
+                x, y = constants.POTSTARS_CONSTELLATION_MAP[constellation]
+                new_survivor["constellationMap"][x][y] = True
+            
+            print(f"New survivor has constellations: {constellations}")
         return new_survivor
 
 

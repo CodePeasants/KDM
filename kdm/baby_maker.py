@@ -84,7 +84,7 @@ class BabyMaker:
             table = [[
                 x['name'],
                 x['gender'],
-                x['reroll'],
+                self.settlement.has_reroll(x),
                 x['attributes']['MOV'],
                 x['attributes']['STR'],
                 x['attributes']['EVA'],
@@ -97,10 +97,4 @@ class BabyMaker:
                 x['survival']
             ] for x in result]
             print(tabulate(table, headers=headers))
-            # for survivor in result:
-                # print(survivor["name"], survivor["gender"], f"Re-roll: {survivor['reroll']}")
-    
-    
-
-    
     

@@ -1,4 +1,5 @@
 import random
+from kdm.scribe import Settlement
 
 
 def roll(sides=10):
