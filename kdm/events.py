@@ -526,6 +526,13 @@ class Intimacy:
             #  another intimacy event with +1 to roll results, from the courage event!
             _result.append(-int(_x["courage"] >= 6))
 
+            # Understanding event has a chance to get additional endeavor to continue baby making.
+            _result.append(-int(_x["understanding"] >= 6))
+
+            # Understanding is more valuable than courage in general, because it improves augury.
+            _result.append(_x["understanding"])
+            _result.append(_x["courage"])
+            
             # Prioritize survivors will stat penalties - they might die.
             for _attr in ["MOV", "SPD", "ACC", "LCK", "EVA", "STR"]:
                 _result.append(_x["attributes"][_attr])
@@ -533,10 +540,7 @@ class Intimacy:
             # Breed people with higher injuries and disorders.
             _result.append(-len(_x["severeInjuries"]))
             _result.append(-len(_x["disorders"]))
-
-            # Other attributes.
-            _result.append(_x["understanding"])
-            _result.append(_x["courage"])
+            
             return _result
 
         for search_gender in search_genders:
