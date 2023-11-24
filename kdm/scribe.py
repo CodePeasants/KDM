@@ -91,7 +91,7 @@ class Settlement(DictWrapper):
             print(f"{len(candidates)} settlements found with the same name. Selecting the one at the highest lantern year ({candidates[0]['id']}).")
         self.data = candidates[0]
         
-        self.id = data["id"]
+        self.id = self.data["id"]
         self.survivors = parent["survivors"][self.id]
 
         # Load my list of fighting arts.
@@ -99,6 +99,7 @@ class Settlement(DictWrapper):
             arts_path = os.path.join(constants.RESOURCE_PATH, "fighting_arts.json")
             with open(arts_path, "r", encoding="utf-8") as fh:
                 self.__class__.fighting_arts = json.load(fh)
+        print(f"Loaded settlement: {self.name}")
     
     @classmethod
     def load(cls, path=constants.TEST_DATA_PATH, name="Roshi's Island"):
