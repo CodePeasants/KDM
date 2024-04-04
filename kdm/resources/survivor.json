@@ -2,7 +2,7 @@
     "name": "Aubergine",
     "gender": "M",
     "departing": false,
-    "returning": true,
+    "returning": false,
     "attributes": {
         "MOV": 5,
         "STR": 0,
